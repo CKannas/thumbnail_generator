@@ -1,0 +1,26 @@
+[project]
+name = "thumbnail-generator"
+version = "0.1.0"
+description = "Generate thumbnails for YouTube Videos."
+authors = [
+    {name = "Christos Kannas",email = "chriskannas@gmail.com"}
+]
+license = {text = "MIT"}
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "tqdm (>=4.67.1,<5.0.0)",
+    "dotenv (>=0.9.9,<0.10.0)",
+    "google-api-python-client (>=2.187.0,<3.0.0)"
+]
+
+[dependency-groups]
+dev = [
+    "pytest (>=9.0.2,<10.0.0)",
+    "pre-commit (>=4.5.1,<5.0.0)"
+]
+
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
