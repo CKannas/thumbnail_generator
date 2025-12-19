@@ -2,6 +2,9 @@ import argparse
 import subprocess
 import sys
 from pathlib import Path
+from tqdm import tqdm
+import concurrent.futures
+from typing import List
 
 OUTER = 20
 INNER = 4
@@ -86,7 +89,8 @@ def generate_thumbnail(base, title, part, font, fontsize, color, outdir):
     ]
 
     run(cmd)
-    print(f"Generated: {output}")
+
+    return output.as_posix()
 
 
 def parse_range(r):
@@ -109,6 +113,7 @@ def main():
     parser.add_argument("--fontsize", type=int, default=60, help="Font size")
     parser.add_argument("--color", default="white", help="Font color")
     parser.add_argument("--outdir", type=Path, default=Path("thumbnails"), help="Output directory")
+    parser.add_argument("--workers", type=int, default=4, help="Number of worker threads (set 1 to disable parallelism)")
 
     args = parser.parse_args()
 
@@ -124,18 +129,56 @@ def main():
 
     args.outdir.mkdir(parents=True, exist_ok=True)
 
-    parts = [args.part] if args.part else args.range
+    parts = list([args.part] if args.part else args.range)
 
-    for part in parts:
-        generate_thumbnail(
-            base=args.base,
-            title=args.title,
-            part=part,
-            font=args.font,
-            fontsize=args.fontsize,
-            color=args.color,
-            outdir=args.outdir,
-        )
+    # Collect (part, path) so we can preserve ordering when printing results.
+    outputs: List[tuple] = []
+
+    # If workers == 1 or only a single part, run sequentially to preserve ordering and simplicity.
+    if args.workers <= 1 or len(parts) <= 1:
+        for part in tqdm(parts):
+            outputs.append(
+                (part, generate_thumbnail(
+                    base=args.base,
+                    title=args.title,
+                    part=part,
+                    font=args.font,
+                    fontsize=args.fontsize,
+                    color=args.color,
+                    outdir=args.outdir,
+                ))
+            )
+    else:
+        # Parallel execution using a thread pool. ImageMagick subprocess calls are I/O/OS-bound,
+        # so threads are a reasonable approach and avoid pickling overhead of processes.
+        with concurrent.futures.ThreadPoolExecutor(max_workers=args.workers) as ex:
+            future_to_part = {
+                ex.submit(
+                    generate_thumbnail,
+                    args.base,
+                    args.title,
+                    part,
+                    args.font,
+                    args.fontsize,
+                    args.color,
+                    args.outdir,
+                ): part
+                for part in parts
+            }
+
+            for fut in tqdm(concurrent.futures.as_completed(future_to_part), total=len(future_to_part)):
+                part = future_to_part[fut]
+                try:
+                    outputs.append((part, fut.result()))
+                except Exception as e:
+                    print(f"Error generating thumbnail for part {part}: {e}")
+                    sys.exit(1)
+    # Sort outputs by part number to preserve deterministic ordering
+    outputs.sort(key=lambda p: p[0])
+    paths = [p for _, p in outputs]
+
+    print("Generated thumbnails:")
+    print("\n".join(map(str, paths)))
 
 
 if __name__ == "__main__":
