@@ -17,57 +17,72 @@ def run(cmd):
         sys.exit(1)
 
 
-def generate_thumbnail(
-    base,
-    title,
-    part,
-    font,
-    fontsize,
-    color,
-    outdir
-):
+def generate_thumbnail(base, title, part, font, fontsize, color, outdir):
     part_str = f"{part:01d}"
     output = outdir / f"thumbnail_part_{part_str}.png"
-    
+
     cmd = [
-        "magick", str(base),
-        "-resize", f"{WIDTH}x{HEIGHT}^",
-        "-gravity", "center",
-        "-extent", f"{WIDTH}x{HEIGHT}",
-
+        "magick",
+        str(base),
+        "-resize",
+        f"{WIDTH}x{HEIGHT}^",
+        "-gravity",
+        "center",
+        "-extent",
+        f"{WIDTH}x{HEIGHT}",
         # Add thick outline around image
-        "-bordercolor", "none",
-        "-border", str(OUTER),
+        "-bordercolor",
+        "none",
+        "-border",
+        str(OUTER),
         # Outer black stroke
-        "-stroke", "black",
-        "-strokewidth", str(OUTER),
-        "-fill", "none",
-        "-draw", f"rectangle {OUTER / 2},{OUTER / 2} {WIDTH + OUTER * 1.5},{HEIGHT + OUTER * 1.5}",
-
+        "-stroke",
+        "black",
+        "-strokewidth",
+        str(OUTER),
+        "-fill",
+        "none",
+        "-draw",
+        f"rectangle {OUTER / 2},{OUTER / 2} {WIDTH + OUTER * 1.5},{HEIGHT + OUTER * 1.5}",
         # Inner white stroke
-        "-stroke", "white",
-        "-strokewidth", str(INNER),
-        "-fill", "none",
-        "-draw", f"rectangle {OUTER},{OUTER} {WIDTH + OUTER},{HEIGHT + OUTER}",
-
+        "-stroke",
+        "white",
+        "-strokewidth",
+        str(INNER),
+        "-fill",
+        "none",
+        "-draw",
+        f"rectangle {OUTER},{OUTER} {WIDTH + OUTER},{HEIGHT + OUTER}",
         # Title (top center)
-        "-gravity", "north",
-        "-font", font,
-        "-pointsize", str(fontsize),
-        "-fill", color,
-        "-stroke", "black",
-        "-strokewidth", "3",
-        "-background", "none",
-        "-size", "1200x200",
+        "-gravity",
+        "north",
+        "-font",
+        font,
+        "-pointsize",
+        str(fontsize),
+        "-fill",
+        color,
+        "-stroke",
+        "black",
+        "-strokewidth",
+        "3",
+        "-background",
+        "none",
+        "-size",
+        "1200x200",
         "caption:" + title,
-        "-geometry", "+0+40",
+        "-geometry",
+        "+0+40",
         "-composite",
         # Part number (bottom right)
-        "-gravity", "southeast",
-        "-pointsize", str(fontsize),
-        "-annotate", "+40+30", f"PART {part_str}",
-
-        str(output)
+        "-gravity",
+        "southeast",
+        "-pointsize",
+        str(fontsize),
+        "-annotate",
+        "+40+30",
+        f"PART {part_str}",
+        str(output),
     ]
 
     run(cmd)
@@ -83,9 +98,7 @@ def parse_range(r):
 
 
 def main():
-    parser = argparse.ArgumentParser(
-        description="Generate numbered video thumbnails using ImageMagick"
-    )
+    parser = argparse.ArgumentParser(description="Generate numbered video thumbnails using ImageMagick")
 
     parser.add_argument("--base", required=True, type=Path, help="Base thumbnail image")
     parser.add_argument("--title", required=True, help="Title text")
@@ -121,7 +134,7 @@ def main():
             font=args.font,
             fontsize=args.fontsize,
             color=args.color,
-            outdir=args.outdir
+            outdir=args.outdir,
         )
 
 
