@@ -4,7 +4,7 @@ import sys
 from pathlib import Path
 from tqdm import tqdm
 import concurrent.futures
-from typing import List
+from typing import List, Optional
 
 OUTER = 20
 INNER = 4
@@ -20,9 +20,14 @@ def run(cmd):
         sys.exit(1)
 
 
-def generate_thumbnail(base, title, part, font, fontsize, color, outdir):
-    part_str = f"{part:01d}"
-    output = outdir / f"thumbnail_part_{part_str}.png"
+def generate_thumbnail(base, title, part: Optional[int], font, fontsize, color, outdir, no_part_label: bool = False):
+    # part may be None when --no-part-label is used; in that case omit part text
+    part_str = f"{part:01d}" if part is not None else ""
+    # When no_part_label is requested, do not include the part number in the filename
+    if no_part_label:
+        output = outdir / "thumbnail.png"
+    else:
+        output = outdir / f"thumbnail_part_{part_str}.png"
 
     cmd = [
         "magick",
@@ -77,16 +82,22 @@ def generate_thumbnail(base, title, part, font, fontsize, color, outdir):
         "-geometry",
         "+0+40",
         "-composite",
-        # Part number (bottom right)
-        "-gravity",
-        "southeast",
-        "-pointsize",
-        str(fontsize),
-        "-annotate",
-        "+40+30",
-        f"PART {part_str}",
-        str(output),
     ]
+
+    # Optionally add part number (bottom right) onto the image.
+    if not no_part_label:
+        cmd.extend([
+            "-gravity",
+            "southeast",
+            "-pointsize",
+            str(fontsize),
+            "-annotate",
+            "+40+30",
+            f"PART {part_str}",
+        ])
+
+    # Output filename (always appended last)
+    cmd.append(str(output))
 
     run(cmd)
 
@@ -106,22 +117,19 @@ def main():
 
     parser.add_argument("--base", required=True, type=Path, help="Base thumbnail image")
     parser.add_argument("--title", required=True, help="Title text")
-    parser.add_argument("--part", type=int, help="Single part number")
-    parser.add_argument("--range", type=parse_range, help="Part range START-END")
-
+    # Make --part, --range and --no-part-label mutually exclusive and require one of them.
+    group = parser.add_mutually_exclusive_group(required=True)
+    group.add_argument("--part", type=int, help="Single part number")
+    group.add_argument("--range", type=parse_range, help="Part range START-END")
+    group.add_argument("--no-part-label", action="store_true", help="Do not draw the 'PART N' label on the image and omit the part from filenames")
     parser.add_argument("--font", default="DejaVu-Sans-Bold", help="Font name or path")
     parser.add_argument("--fontsize", type=int, default=60, help="Font size")
     parser.add_argument("--color", default="white", help="Font color")
     parser.add_argument("--outdir", type=Path, default=Path("thumbnails"), help="Output directory")
     parser.add_argument("--workers", type=int, default=4, help="Number of worker threads (set 1 to disable parallelism)")
+    
 
     args = parser.parse_args()
-
-    if not args.part and not args.range:
-        parser.error("You must specify --part or --range")
-
-    if args.part and args.range:
-        parser.error("Use only one of --part or --range")
 
     if not args.base.exists():
         print("Base image not found")
@@ -129,7 +137,10 @@ def main():
 
     args.outdir.mkdir(parents=True, exist_ok=True)
 
-    parts = list([args.part] if args.part else args.range)
+    if args.no_part_label:
+        parts = [None]
+    else:
+        parts = list([args.part] if args.part else args.range)
 
     # Collect (part, path) so we can preserve ordering when printing results.
     outputs: List[tuple] = []
@@ -146,6 +157,7 @@ def main():
                     fontsize=args.fontsize,
                     color=args.color,
                     outdir=args.outdir,
+                    no_part_label=args.no_part_label,
                 ))
             )
     else:
@@ -162,6 +174,7 @@ def main():
                     args.fontsize,
                     args.color,
                     args.outdir,
+                    args.no_part_label,
                 ): part
                 for part in parts
             }
@@ -174,7 +187,7 @@ def main():
                     print(f"Error generating thumbnail for part {part}: {e}")
                     sys.exit(1)
     # Sort outputs by part number to preserve deterministic ordering
-    outputs.sort(key=lambda p: p[0])
+    outputs.sort(key=lambda p: (p[0] is None, p[0] or 0))
     paths = [p for _, p in outputs]
 
     print("Generated thumbnails:")
