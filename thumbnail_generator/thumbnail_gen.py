@@ -6,6 +6,10 @@ from tqdm import tqdm
 import concurrent.futures
 from typing import List, Optional
 
+from .logging_config import setup_logging, get_logger
+
+logger = get_logger(__name__)
+
 OUTER = 20
 INNER = 4
 WIDTH = 1280
@@ -16,7 +20,7 @@ def run(cmd):
     try:
         subprocess.run(cmd, check=True)
     except subprocess.CalledProcessError:
-        print("Error running ImageMagick command")
+        logger.error("Error running ImageMagick command")
         sys.exit(1)
 
 
@@ -132,7 +136,7 @@ def main():
     args = parser.parse_args()
 
     if not args.base.exists():
-        print("Base image not found")
+        logger.error("Base image not found")
         sys.exit(1)
 
     args.outdir.mkdir(parents=True, exist_ok=True)
@@ -184,15 +188,17 @@ def main():
                 try:
                     outputs.append((part, fut.result()))
                 except Exception as e:
-                    print(f"Error generating thumbnail for part {part}: {e}")
+                    logger.error(f"Error generating thumbnail for part {part}: {e}")
                     sys.exit(1)
     # Sort outputs by part number to preserve deterministic ordering
     outputs.sort(key=lambda p: (p[0] is None, p[0] or 0))
     paths = [p for _, p in outputs]
 
-    print("Generated thumbnails:")
-    print("\n".join(map(str, paths)))
+    logger.info("Generated thumbnails:")
+    for path in paths:
+        logger.info(path)
 
 
 if __name__ == "__main__":
+    setup_logging()
     exit(main())

@@ -12,6 +12,10 @@ from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload
 
+from .logging_config import setup_logging, get_logger
+
+logger = get_logger(__name__)
+
 SCOPES = ["https://www.googleapis.com/auth/youtube.upload"]
 
 # Add HTTP cache
@@ -52,10 +56,10 @@ def match_thumbnails_to_videos(videos, thumbnails_folder: Path):
             part_number = int(match.group(1))
             video.thumbnail_path = str(thumbnail_map.get(part_number)) if thumbnail_map.get(part_number) else None
             if video.thumbnail_path is None:
-                print(f"Warning: No thumbnail found for '{video.title}'")
+                logger.warning(f"No thumbnail found for '{video.title}'")
         else:
             video.thumbnail_path = None
-            print(f"Warning: Video title '{video.title}' does not contain a part number")
+            logger.warning(f"Video title '{video.title}' does not contain a part number")
 
     return videos
 
@@ -132,7 +136,7 @@ def main():
     elif args.part_range:
         videos = filter_videos_by_part_range(videos, args.part_range)
 
-    print(f"{len(videos)} videos selected for processing after filtering.")
+    logger.info(f"{len(videos)} videos selected for processing after filtering.")
 
     # Always match thumbnails
     videos = match_thumbnails_to_videos(videos, args.thumbnails_folder)
@@ -141,7 +145,7 @@ def main():
     updated_json_path = args.videos_json.with_name(args.videos_json.stem + "_with_thumbnails.json")
     with updated_json_path.open("w", encoding="utf-8") as f:
         json.dump([asdict(v) for v in videos], f, indent=4, ensure_ascii=False)
-    print(f"Updated JSON with thumbnails saved to {updated_json_path}")
+    logger.info(f"Updated JSON with thumbnails saved to {updated_json_path}")
 
     if args.update:
         # Authenticate
@@ -157,10 +161,12 @@ def main():
                     log_msgs.append(f"❌ Failed '{video.title}': {e}")
             else:
                 log_msgs.append(f"⚠️ Skipped '{video.title}': No thumbnail assigned")
-        print("\n".join(log_msgs))
+        for msg in log_msgs:
+            logger.info(msg)
     else:
-        print("Update flag not set. Thumbnails were matched but not uploaded to YouTube.")
+        logger.info("Update flag not set. Thumbnails were matched but not uploaded to YouTube.")
 
 
 if __name__ == "__main__":
+    setup_logging()
     exit(main())

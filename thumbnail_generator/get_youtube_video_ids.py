@@ -8,6 +8,10 @@ from typing import Any, List
 from googleapiclient.discovery import build
 from google_auth_oauthlib.flow import InstalledAppFlow
 
+from .logging_config import setup_logging, get_logger
+
+logger = get_logger(__name__)
+
 SCOPES = ["https://www.googleapis.com/auth/youtube.readonly"]
 
 
@@ -81,7 +85,7 @@ def save_video_ids(videos, filename="video_ids.json"):
     """Save video IDs to a JSON file."""
     with open(filename, "w", encoding="utf-8") as f:
         json.dump([asdict(video) for video in videos], f, indent=4, ensure_ascii=False)
-    print(f"Video IDs saved to {filename} successfully.")
+    logger.info(f"Video IDs saved to {filename} successfully.")
 
 
 def main():
@@ -100,11 +104,12 @@ def main():
 
     try:
         video_ids = get_video_ids_from_playlist(args.playlist_id, youtube)
-        print(f"Retrieved {len(video_ids)} video IDs.")
+        logger.info(f"Retrieved {len(video_ids)} video IDs.")
         save_video_ids(video_ids, args.output)
     except Exception as e:
-        print(f"Error retrieving video IDs: {e}")
+        logger.error(f"Error retrieving video IDs: {e}")
 
 
 if __name__ == "__main__":
+    setup_logging()
     exit(main())
