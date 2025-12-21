@@ -17,6 +17,7 @@ from .logging_config import setup_logging, get_logger
 logger = get_logger(__name__)
 
 SCOPES = ["https://www.googleapis.com/auth/youtube.upload"]
+MAX_UPLOAD_RETRIES = 3  # Increased retries for robustness
 
 # Add HTTP cache
 http = httplib2.Http(cache=".cache")
@@ -86,7 +87,7 @@ def filter_videos_by_part_range(videos, part_range: tuple[int, int]):
     return filtered
 
 
-def update_video_thumbnail(youtube, video_id, thumbnail_path, max_retries=3, retry_delay=2):
+def update_video_thumbnail(youtube, video_id, thumbnail_path, max_retries=MAX_UPLOAD_RETRIES, retry_delay=2):
     """Update thumbnail with retries."""
     for attempt in range(1, max_retries + 1):
         try:
@@ -118,6 +119,7 @@ def main():
     parser.add_argument("--min-part", type=int, help="Minimum Part number to update")
     parser.add_argument("--part-range", type=parse_part_range, help="Range of Part numbers to update, format: start-end")
     parser.add_argument("--update", action="store_true", help="Upload thumbnails to YouTube if set")
+    parser.add_argument("--max-retries", type=int, default=MAX_UPLOAD_RETRIES, help="Maximum upload retries")
     args = parser.parse_args()
 
     # Validate paths
@@ -125,6 +127,9 @@ def main():
         raise ValueError(f"Videos JSON file not found: {args.videos_json}")
     if not args.thumbnails_folder.is_dir():
         raise ValueError(f"Thumbnails folder not found: {args.thumbnails_folder}")
+    # Validate max_retries
+    if args.max_retries < 1:
+        raise ValueError("max-retries must be at least 1")
 
     # Load videos JSON
     with args.videos_json.open("r", encoding="utf-8") as f:
@@ -155,7 +160,7 @@ def main():
         for video in tqdm(videos, desc="Uploading thumbnails"):
             if video.thumbnail_path:
                 try:
-                    update_video_thumbnail(youtube, video.video_id, video.thumbnail_path)
+                    update_video_thumbnail(youtube, video.video_id, video.thumbnail_path, max_retries=args.max_retries)
                     log_msgs.append(f"✅ '{video.title}' updated")
                 except Exception as e:
                     log_msgs.append(f"❌ Failed '{video.title}': {e}")
