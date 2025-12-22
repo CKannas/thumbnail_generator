@@ -12,7 +12,7 @@ from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload
 
-from .logging_config import setup_logging, get_logger
+from thumbnail_generator.logging_config import setup_logging, get_logger
 
 logger = get_logger(__name__)
 

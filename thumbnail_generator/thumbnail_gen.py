@@ -6,7 +6,7 @@ from tqdm import tqdm
 import concurrent.futures
 from typing import List, Optional
 
-from .logging_config import setup_logging, get_logger
+from thumbnail_generator.logging_config import setup_logging, get_logger
 
 logger = get_logger(__name__)
 
