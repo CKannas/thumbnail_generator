@@ -10,7 +10,7 @@ from google_auth_oauthlib.flow import InstalledAppFlow
 
 from thumbnail_generator.logging_config import setup_logging, get_logger
 
-logger = get_logger(__name__)
+logger = get_logger("get_youtube_video_ids")
 
 SCOPES = ["https://www.googleapis.com/auth/youtube.readonly"]
 

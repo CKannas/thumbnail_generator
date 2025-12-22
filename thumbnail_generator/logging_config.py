@@ -87,7 +87,8 @@ def get_logger(module_name: Optional[str] = None) -> logging.Logger:
     Get a logger instance for the specified module.
     
     Args:
-        module_name: Name of the module (typically __name__). 
+        module_name: Explicit module name (e.g., 'thumbnail_gen', 'update_youtube_videos').
+                     Use a descriptive name for CLI modules to avoid '__main__' issues.
                      If None, returns the root thumbnail_generator logger.
     
     Returns:
@@ -97,5 +98,9 @@ def get_logger(module_name: Optional[str] = None) -> logging.Logger:
         return logging.getLogger("thumbnail_generator")
     
     # Create hierarchical logger names like "thumbnail_generator.module_name"
-    logger_name = f"thumbnail_generator.{module_name.split('.')[-1]}"
+    # Use the module_name directly or extract the last part if it's a full path
+    if '.' in module_name:
+        logger_name = f"thumbnail_generator.{module_name.split('.')[-1]}"
+    else:
+        logger_name = f"thumbnail_generator.{module_name}"
     return logging.getLogger(logger_name)

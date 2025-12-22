@@ -14,7 +14,7 @@ from googleapiclient.http import MediaFileUpload
 
 from thumbnail_generator.logging_config import setup_logging, get_logger
 
-logger = get_logger(__name__)
+logger = get_logger("update_youtube_videos")
 
 SCOPES = ["https://www.googleapis.com/auth/youtube.upload"]
 MAX_UPLOAD_RETRIES = 3  # Increased retries for robustness

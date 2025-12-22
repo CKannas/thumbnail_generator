@@ -8,7 +8,7 @@ from typing import List, Optional
 
 from thumbnail_generator.logging_config import setup_logging, get_logger
 
-logger = get_logger(__name__)
+logger = get_logger("thumbnail_gen")
 
 OUTER = 20
 INNER = 4
